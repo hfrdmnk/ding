@@ -94,7 +94,7 @@ export function Slider({
             inputRef={inputRef}
             onKeyDown={onThumbKeyDown}
             getAriaValueText={(_, v) => format(v)}
-            className="flex h-full w-4 justify-center outline-none before:my-auto before:h-5 before:w-[3px] before:rounded-full before:bg-primary has-focus-visible:before:outline-2 has-focus-visible:before:outline-offset-2 has-focus-visible:before:outline-accent has-focus-visible:before:outline-solid"
+            className="flex h-full w-4 justify-center outline-none before:my-auto before:h-5 before:w-[3px] before:rounded-full before:bg-primary has-focus-visible:before:outline-2 has-focus-visible:before:outline-offset-2 has-focus-visible:before:outline-primary has-focus-visible:before:outline-solid"
           />
         </BaseSlider.Track>
       </BaseSlider.Control>

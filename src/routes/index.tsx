@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, type LinkProps } from "@tanstack/react-router";
 import { Signature } from "../ui/Signature";
 
 export const Route = createFileRoute("/")({
@@ -6,26 +6,11 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const tools = [
-  {
-    to: "/timer",
-    name: "Interval timer",
-    description: "Work, rest, repeat.",
-    ready: false,
-  },
-  {
-    to: "/breathe",
-    name: "Box breathing",
-    description: "In, hold, out, hold.",
-    ready: false,
-  },
-  {
-    to: "/today",
-    name: "Today",
-    description: "A to-do list that forgets at midnight.",
-    ready: false,
-  },
-] as const;
+const tools: { name: string; description: string; to?: LinkProps["to"] }[] = [
+  { name: "Interval timer", description: "Work, rest, repeat." },
+  { name: "Box breathing", description: "In, hold, out, hold." },
+  { name: "Today", description: "A to-do list that forgets at midnight." },
+];
 
 function Index() {
   return (
@@ -40,28 +25,37 @@ function Index() {
 
         <ul className="mt-14 divide-y divide-[color-mix(in_oklab,var(--secondary)_25%,var(--bg))] border-y border-[color-mix(in_oklab,var(--secondary)_25%,var(--bg))]">
           {tools.map((tool) => (
-            <li key={tool.to}>
-              <Link
-                to={tool.to}
-                className={`block py-4 ${tool.ready ? "" : "text-secondary"}`}
-              >
-                <span className="flex items-baseline justify-between gap-4">
+            <li key={tool.name}>
+              {tool.to ? (
+                <Link to={tool.to} className="block py-4">
                   <span className="font-medium">{tool.name}</span>
-                  {!tool.ready && <span className="text-xs">Soon</span>}
-                </span>
-                <span
-                  className={`mt-0.5 block text-sm ${tool.ready ? "text-secondary" : ""}`}
-                >
-                  {tool.description}
-                </span>
-              </Link>
+                  <span className="mt-0.5 block text-sm text-secondary">
+                    {tool.description}
+                  </span>
+                </Link>
+              ) : (
+                <div className="py-4 text-secondary">
+                  <span className="flex items-baseline justify-between gap-4">
+                    <span className="font-medium">{tool.name}</span>
+                    <span className="text-xs">Soon</span>
+                  </span>
+                  <span className="mt-0.5 block text-sm">
+                    {tool.description}
+                  </span>
+                </div>
+              )}
             </li>
           ))}
         </ul>
       </main>
 
       <footer className="pt-20 text-center text-secondary">
-        <Signature className="h-10" />
+        <a
+          href="https://dominikhofer.me"
+          className="mx-auto block w-fit transition-colors hover:text-primary"
+        >
+          <Signature className="h-10" />
+        </a>
         <p className="mt-4 text-sm">
           Free, local, offline. No accounts, no ads.
         </p>

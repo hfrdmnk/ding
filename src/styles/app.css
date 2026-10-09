@@ -8,7 +8,6 @@
   /* orange: effort, active ("work"). violet: calm ("rest", "exhale"). */
   --orange: oklch(0.744 0.181 56.458);
   --violet: oklch(0.56 0.244 275.119);
-  --accent: var(--primary);
 
   color-scheme: light dark;
 }
@@ -21,7 +20,6 @@
   }
 }
 
-/* inline, so a subtree can override --accent (see ToolShell) */
 @theme inline {
   --color-*: initial;
   --color-bg: var(--bg);
@@ -29,7 +27,6 @@
   --color-secondary: var(--secondary);
   --color-orange: var(--orange);
   --color-violet: var(--violet);
-  --color-accent: var(--accent);
 
   --font-*: initial;
   --font-sans: system-ui, sans-serif;
@@ -64,8 +61,13 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  ::selection {
+    color: var(--orange);
+    background-color: color-mix(in srgb, var(--orange), transparent 80%);
+  }
+
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 

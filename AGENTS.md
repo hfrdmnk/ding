@@ -31,7 +31,7 @@ pnpm format      # prettier --write (format:check to verify)
 - Minimalism first: when in doubt, remove it. One primary action per screen, no shadows, gradients, or cards-in-cards.
 - `system-ui` only, no web fonts. Use `tabular-nums` for any number that changes.
 - Type sizes follow the major-second scale in `src/styles/app.css`; don't add arbitrary `text-[…]` sizes. Emphasis is `font-medium`, never semibold or bold.
-- Colors: only the tokens in `src/styles/app.css` (`bg`, `primary`, `secondary`, `orange`, `violet`, `accent`). Orange means effort/active ("work"); violet means calm ("rest", "exhale"). Orange is fill-only, never small text. Lines and subtle surfaces use `color-mix(in oklab, var(--secondary) N%, var(--bg))`, not new tokens.
+- Colors: only the tokens in `src/styles/app.css` (`bg`, `primary`, `secondary`, `orange`, `violet`). Orange means effort/active ("work"); violet means calm ("rest", "exhale"). Orange is fill-only, never small text. Lines and subtle surfaces use `color-mix(in oklab, var(--secondary) N%, var(--bg))`, not new tokens.
 - Tools import UI only from `src/ui/`, never from `@base-ui/react` directly.
 - Storage only through `createStore`/`useStore` from `src/lib/store.ts`. Never touch `localStorage` directly. Bump `version` (and add `migrate`) when a stored shape changes incompatibly.
 - Audio only through `src/lib/audio.ts`. Call `unlockAudio()` inside the click handler that starts anything audible. Don't use `@web-kits/audio/react`: its hooks are silent under `prefers-reduced-motion`, and our sounds carry information.
@@ -41,10 +41,10 @@ pnpm format      # prettier --write (format:check to verify)
 
 ### Adding a tool
 
-1. Add `src/routes/<tool>.tsx`, wrapping the page in `ToolShell` (with `accent` if the tool has one).
+1. Add `src/routes/<tool>.tsx`, wrapping the page in `ToolShell`.
 2. Put its logic in `src/tools/<tool>/`.
 3. If it persists anything, create a store with a unique `key` and decide `sync`.
-4. Add it to the `tools` list in `src/routes/index.tsx` and set `ready: true` when it ships.
+4. Add it to the `tools` list in `src/routes/index.tsx` and give it a `to` when it ships; until then it shows as "Soon".
 
 ## Definition of done
 
