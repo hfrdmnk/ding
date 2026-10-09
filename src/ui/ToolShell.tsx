@@ -33,7 +33,7 @@ export function ToolShell({
         <Link to="/" aria-label="All tools" className={`-ml-2.5 ${iconButton}`}>
           <NavArrowLeft width={22} height={22} />
         </Link>
-        <h1 className="text-center text-base font-semibold">{title}</h1>
+        <h1 className="text-center text-base font-medium">{title}</h1>
         {settings && (
           <Dialog
             title="Settings"

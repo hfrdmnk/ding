@@ -27,8 +27,10 @@ pnpm format      # prettier --write (format:check to verify)
 
 ## Conventions
 
+- Before writing CSS, read the good-css skill (https://good-css.com/skills/good-css/SKILL.md) and load only the references its table names for the task. Express the techniques as Tailwind utilities where possible. The rules in this file win on conflict (tokens, type scale).
 - Minimalism first: when in doubt, remove it. One primary action per screen, no shadows, gradients, or cards-in-cards.
 - `system-ui` only, no web fonts. Use `tabular-nums` for any number that changes.
+- Type sizes follow the major-second scale in `src/styles/app.css`; don't add arbitrary `text-[…]` sizes. Emphasis is `font-medium`, never semibold or bold.
 - Colors: only the tokens in `src/styles/app.css` (`bg`, `primary`, `secondary`, `orange`, `violet`, `accent`). Orange means effort/active ("work"); violet means calm ("rest", "exhale"). Orange is fill-only, never small text. Lines and subtle surfaces use `color-mix(in oklab, var(--secondary) N%, var(--bg))`, not new tokens.
 - Tools import UI only from `src/ui/`, never from `@base-ui/react` directly.
 - Storage only through `createStore`/`useStore` from `src/lib/store.ts`. Never touch `localStorage` directly. Bump `version` (and add `migrate`) when a stored shape changes incompatibly.
