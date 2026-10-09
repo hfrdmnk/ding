@@ -22,6 +22,7 @@ const tools: {
     name: "Interval timer",
     description: "Work, rest, repeat.",
     Icon: TimerIcon,
+    to: "/timer",
   },
   {
     name: "Box breathing",

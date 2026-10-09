@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { NavArrowLeft, Settings } from "iconoir-react";
 import type { ReactNode } from "react";
 import { Dialog } from "./Dialog";
+import { Logo } from "./Logo";
 
 type ToolShellProps = {
   title: string;
@@ -20,7 +21,10 @@ export function ToolShell({ title, settings, children }: ToolShellProps) {
         <Link to="/" aria-label="All tools" className={`-ml-2.5 ${iconButton}`}>
           <NavArrowLeft width={22} height={22} />
         </Link>
-        <h1 className="text-center text-base font-medium">{title}</h1>
+        <div className="flex justify-center">
+          <Logo className="h-4 text-secondary" />
+          <h1 className="sr-only">{title}</h1>
+        </div>
         {settings && (
           <Dialog
             title="Settings"

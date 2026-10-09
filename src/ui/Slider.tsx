@@ -22,7 +22,6 @@ const CLICK_THRESHOLD = 3;
 const RUBBER_DEAD_ZONE = 32;
 const RUBBER_RANGE = 200;
 const RUBBER_MAX = 8;
-const EDIT_DELAY = 800;
 const DECILE_PULL = 1 / 32;
 // The handle sits this far inside the fill's edge, and never closer than HANDLE_MIN to the track's start.
 const HANDLE_INSET = 9;
@@ -54,8 +53,13 @@ export function Slider({
   const trackRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
   const valueRef = useRef<HTMLSpanElement>(null);
-  const gesture = useRef<{ x: number; y: number; rect: DOMRect } | null>(null);
-  const editTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const gesture = useRef<{
+    x: number;
+    y: number;
+    rect: DOMRect;
+    onValue: boolean;
+  } | null>(null);
+  const editOnClick = useRef(false);
   const cancelled = useRef(false);
 
   const [pressed, setPressed] = useState(false);
@@ -65,7 +69,6 @@ export function Slider({
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [instant, setInstant] = useState(false);
-  const [editable, setEditable] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
   const [widths, setWidths] = useState({ track: 0, label: 0, value: 0 });
   const editing = draft !== null;
@@ -82,8 +85,6 @@ export function Slider({
       if (el) observer.observe(el);
     return () => observer.disconnect();
   }, [editing]);
-
-  useEffect(() => () => clearTimeout(editTimer.current), []);
 
   const steps = Math.round((max - min) / step);
   const dragging = dragFraction !== null;
@@ -129,10 +130,12 @@ export function Slider({
     const wrapper = event.currentTarget.parentElement;
     if (!wrapper) return;
     event.currentTarget.setPointerCapture(event.pointerId);
+    editOnClick.current = false;
     gesture.current = {
       x: event.clientX,
       y: event.clientY,
       rect: wrapper.getBoundingClientRect(),
+      onValue: valueRef.current?.contains(event.target as Node) ?? false,
     };
     setPressed(true);
   };
@@ -151,8 +154,12 @@ export function Slider({
   const onPointerUp = (event: PointerEvent) => {
     const start = gesture.current;
     if (!start) return;
-    const f = fractionAt(event.clientX, start.rect);
-    commit(dragging ? min + f * (max - min) : snapClick(f), true);
+    // A press on the value edits it; a drag that starts there still moves the slider.
+    if (!dragging && start.onValue) editOnClick.current = true;
+    else {
+      const f = fractionAt(event.clientX, start.rect);
+      commit(dragging ? min + f * (max - min) : snapClick(f), true);
+    }
     endGesture();
   };
 
@@ -187,20 +194,10 @@ export function Slider({
     commit(next, false);
   };
 
-  const onValuePointerEnter = (event: PointerEvent) => {
-    if (event.pointerType !== "mouse") return;
-    editTimer.current = setTimeout(() => setEditable(true), EDIT_DELAY);
-  };
-
-  const onValuePointerLeave = () => {
-    clearTimeout(editTimer.current);
-    setEditable(false);
-  };
-
   // Opening on click, after the track has taken focus on mousedown, keeps that focus change from blurring the new input.
-  const onValueClick = () => {
-    if (!editable) return;
-    setEditable(false);
+  const onClick = () => {
+    if (!editOnClick.current) return;
+    editOnClick.current = false;
     setDraft(format(value));
   };
 
@@ -246,6 +243,7 @@ export function Slider({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={endGesture}
+        onClick={onClick}
         onPointerEnter={(e) => e.pointerType === "mouse" && setHovered(true)}
         onPointerLeave={() => setHovered(false)}
         onKeyDown={onKeyDown}
@@ -293,13 +291,7 @@ export function Slider({
           {!editing ? (
             <span
               ref={valueRef}
-              onPointerEnter={onValuePointerEnter}
-              onPointerLeave={onValuePointerLeave}
-              onPointerDown={(event) => editable && event.stopPropagation()}
-              onClick={onValueClick}
-              className={`pointer-events-auto border-b tabular-nums transition-colors duration-150 group-data-active:text-[color-mix(in_oklab,var(--secondary)_60%,var(--primary))] ${
-                editable ? "cursor-text border-current" : "border-transparent"
-              }`}
+              className="pointer-events-auto relative cursor-text border-b border-transparent tabular-nums transition-colors duration-150 group-data-active:text-[color-mix(in_oklab,var(--secondary)_60%,var(--primary))] after:absolute after:-inset-x-3 after:-inset-y-3 hover:border-current"
             >
               {format(value)}
             </span>

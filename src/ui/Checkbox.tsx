@@ -1,5 +1,4 @@
 import { Checkbox as BaseCheckbox } from "@base-ui/react/checkbox";
-import { Check } from "iconoir-react";
 import type { ReactNode } from "react";
 
 type CheckboxProps = {
@@ -14,15 +13,13 @@ export function Checkbox({
   children,
 }: CheckboxProps) {
   return (
-    <label className="flex min-h-11 cursor-pointer items-center gap-3 select-none">
+    <label className="group flex min-h-11 cursor-pointer items-center gap-3 select-none">
       <BaseCheckbox.Root
         checked={checked}
         onCheckedChange={onCheckedChange}
-        className="grid size-5 shrink-0 place-items-center rounded-md border-[1.5px] border-secondary text-bg transition-colors duration-100 data-checked:border-primary data-checked:bg-primary"
+        className="grid size-5 shrink-0 place-items-center rounded-md border-[1.5px] border-[color-mix(in_oklab,var(--secondary)_35%,var(--bg))] transition-colors duration-150 group-hover:border-[color-mix(in_oklab,var(--secondary)_60%,var(--bg))]"
       >
-        <BaseCheckbox.Indicator className="data-unchecked:hidden">
-          <Check width={14} height={14} strokeWidth={2.5} />
-        </BaseCheckbox.Indicator>
+        <BaseCheckbox.Indicator className="size-3 rounded-[2px] bg-[color-mix(in_oklab,var(--secondary)_35%,var(--bg))] transition-colors duration-150 group-hover:bg-[color-mix(in_oklab,var(--secondary)_60%,var(--bg))] data-unchecked:hidden" />
       </BaseCheckbox.Root>
       {children}
     </label>
