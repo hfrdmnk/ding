@@ -24,7 +24,7 @@ pnpm dev
 | `pnpm lint`      | ESLint                                       |
 | `pnpm format`    | Prettier (`format:check` to verify only)     |
 
-The PNG app icons in `public/` are generated from `public/app-icon.svg` with `pnpm dlx @vite-pwa/assets-generator` (settings in `pwa-assets.config.js`). The tab favicon is the logo's square in `--orange`: `public/icon.svg` is edited by hand, and `favicon.ico` comes from `magick -size 48x48 xc:none -fill '#ff8801' -draw 'roundrectangle 0,0 47,47 6,6' public/favicon.ico`.
+The PNG app icons in `public/` are generated from `public/app-icon.svg` with `pnpm dlx @vite-pwa/assets-generator` (settings in `pwa-assets.config.js`). The tab favicon is the logo's square in `--orange`: `public/icon.svg` is edited by hand, and `favicon.ico` comes from `magick -size 48x48 xc:none -fill '#ff5500' -draw 'roundrectangle 0,0 47,47 6,6' public/favicon.ico`.
 
 ## Open decisions
 

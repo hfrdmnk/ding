@@ -6,8 +6,8 @@
   --secondary: oklch(0.556 0 0);
 
   /* orange: effort, active ("work"). violet: calm ("rest", "exhale"). */
-  --orange: oklch(0.744 0.181 56.458);
-  --violet: oklch(0.56 0.244 275.119);
+  --orange: oklch(0.676 0.2175 38.8);
+  --violet: oklch(0.489 0.2959 279.937);
 
   color-scheme: light dark;
 }
