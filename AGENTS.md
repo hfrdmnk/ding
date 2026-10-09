@@ -7,13 +7,13 @@ Ding (ding.dominikhofer.me) is a collection of minimal, no-nonsense web tools: a
 ## Commands
 
 ```sh
-npm install          # install (versions are pinned exactly)
-npm run dev          # dev server
-npm run build        # typecheck + static build into dist/
-npm run preview      # serve dist/ (service worker active; use this to test offline)
-npm run typecheck    # tsc -b
-npm run lint         # eslint
-npm run format       # prettier --write (format:check to verify)
+pnpm install     # pnpm only (npm, yarn, bun are blocked); `pnpm add` pins exact versions
+pnpm dev         # dev server
+pnpm build       # typecheck + static build into dist/
+pnpm preview     # serve dist/ (service worker active; use this to test offline)
+pnpm typecheck   # tsc -b
+pnpm lint        # eslint
+pnpm format      # prettier --write (format:check to verify)
 ```
 
 ## Project structure
@@ -46,6 +46,6 @@ npm run format       # prettier --write (format:check to verify)
 
 ## Definition of done
 
-- `npm run typecheck`, `npm run lint` and `npm run build` pass.
-- Works offline in `npm run preview` after the first load.
+- `pnpm typecheck`, `pnpm lint` and `pnpm build` pass.
+- Works offline in `pnpm preview` after the first load.
 - Checked in light and dark mode and at phone width (~390px).

@@ -3,7 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.10.1",
+      "onFail": "download"
+    }
+  },
   "scripts": {
+    "preinstall": "node -e \"if(!/^pnpm\\//.test(process.env.npm_config_user_agent??'')){console.error('Use pnpm: https://pnpm.io/installation');process.exit(1)}\"",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",

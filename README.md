@@ -6,25 +6,25 @@ A static React SPA (Vite, TanStack Router, Tailwind CSS v4, Base UI) that instal
 
 ## Setup
 
-Requires Node 24+.
+Requires Node 24+ and pnpm (pinned via `devEngines` in `package.json`; pnpm fetches the right version itself). npm, yarn and bun are blocked.
 
 ```sh
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 ## Scripts
 
-| Script              | What it does                                 |
-| ------------------- | -------------------------------------------- |
-| `npm run dev`       | Dev server                                   |
-| `npm run build`     | Typecheck, then build a fully static `dist/` |
-| `npm run preview`   | Serve `dist/` with the service worker active |
-| `npm run typecheck` | `tsc -b`                                     |
-| `npm run lint`      | ESLint                                       |
-| `npm run format`    | Prettier (`format:check` to verify only)     |
+| Script           | What it does                                 |
+| ---------------- | -------------------------------------------- |
+| `pnpm dev`       | Dev server                                   |
+| `pnpm build`     | Typecheck, then build a fully static `dist/` |
+| `pnpm preview`   | Serve `dist/` with the service worker active |
+| `pnpm typecheck` | `tsc -b`                                     |
+| `pnpm lint`      | ESLint                                       |
+| `pnpm format`    | Prettier (`format:check` to verify only)     |
 
-Placeholder icons in `public/` were generated from `public/icon.svg` with `npx @vite-pwa/assets-generator --preset minimal-2023 public/icon.svg`.
+Placeholder icons in `public/` were generated from `public/icon.svg` with `pnpm dlx @vite-pwa/assets-generator --preset minimal-2023 public/icon.svg`.
 
 ## Open decisions
 
@@ -35,3 +35,4 @@ Placeholder icons in `public/` were generated from `public/icon.svg` with `npx @
 - **Dark theme color in the manifest.** The manifest has one `theme_color` (light). Dark is handled by `<meta name="theme-color" media=…>` in `index.html`; browsers don't yet support per-scheme manifest colors.
 - **Per-tool install.** One manifest for now. `vite.config.ts` explains how to add per-tool manifests.
 - **AT Protocol sync.** Not built. Each store declares `sync` so the sync layer can pick what to send.
+- **Release-age exclusion.** pnpm 12 holds back packages younger than its `minimumReleaseAge`. `@base-ui/react@1.9.0` was a day old at setup, so `pnpm-workspace.yaml` lists it (and `@base-ui/utils@0.5.0`) under `minimumReleaseAgeExclude`. Those entries can go once they're past the age limit.
