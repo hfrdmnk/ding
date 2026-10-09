@@ -54,21 +54,28 @@ function Index() {
                 <WavyDivider className="mx-auto w-12 text-[color-mix(in_oklab,var(--secondary)_25%,var(--bg))]" />
               )}
               {tool.to ? (
-                <Link to={tool.to} className="flex items-center gap-4 py-6">
-                  <tool.Icon className="size-7 shrink-0" />
+                <Link
+                  to={tool.to}
+                  className="group flex items-center gap-4 py-6"
+                >
+                  <tool.Icon className="size-7 shrink-0 transition-colors group-hover:text-orange" />
                   <span>
-                    <span className="font-medium">{tool.name}</span>
+                    <span className="font-medium transition-colors group-hover:text-orange">
+                      {tool.name}
+                    </span>
                     <span className="mt-0.5 block text-sm text-secondary">
                       {tool.description}
                     </span>
                   </span>
                 </Link>
               ) : (
-                <div className="flex items-center gap-4 py-6 text-secondary">
-                  <tool.Icon className="size-7 shrink-0" />
+                <div className="group flex items-center gap-4 py-6 text-secondary">
+                  <tool.Icon className="size-7 shrink-0 text-primary transition-colors group-hover:text-orange" />
                   <span className="flex-1">
                     <span className="flex items-baseline justify-between gap-4">
-                      <span className="font-medium">{tool.name}</span>
+                      <span className="font-medium text-primary transition-colors group-hover:text-orange">
+                        {tool.name}
+                      </span>
                       <span className="text-xs">Soon</span>
                     </span>
                     <span className="mt-0.5 block text-sm">
