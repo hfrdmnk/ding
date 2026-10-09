@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+:root {
+  --bg: oklch(1 0 0);
+  --primary: oklch(0.205 0 0);
+  --secondary: oklch(0.556 0 0);
+
+  /* orange: effort, active ("work"). violet: calm ("rest", "exhale"). */
+  --orange: oklch(0.744 0.181 56.458);
+  --violet: oklch(0.56 0.244 275.119);
+  --accent: var(--primary);
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: oklch(0.145 0 0);
+    --primary: oklch(0.985 0 0);
+    --secondary: oklch(0.709 0 0);
+  }
+}
+
+/* inline, so a subtree can override --accent (see ToolShell) */
+@theme inline {
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-orange: var(--orange);
+  --color-violet: var(--violet);
+  --color-accent: var(--accent);
+
+  --font-*: initial;
+  --font-sans: system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    background: var(--bg);
+    color: var(--primary);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+}
