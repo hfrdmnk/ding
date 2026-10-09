@@ -1,15 +1,38 @@
 import { createFileRoute, Link, type LinkProps } from "@tanstack/react-router";
+import type { ComponentType } from "react";
+import { BreatheIcon } from "../tools/breathe/BreatheIcon";
+import { TimerIcon } from "../tools/timer/TimerIcon";
+import { TodayIcon } from "../tools/today/TodayIcon";
+import { Logo } from "../ui/Logo";
 import { Signature } from "../ui/Signature";
+import { WavyDivider } from "../ui/WavyDivider";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [{ title: "Ding" }] }),
   component: Index,
 });
 
-const tools: { name: string; description: string; to?: LinkProps["to"] }[] = [
-  { name: "Interval timer", description: "Work, rest, repeat." },
-  { name: "Box breathing", description: "In, hold, out, hold." },
-  { name: "Today", description: "A to-do list that forgets at midnight." },
+const tools: {
+  name: string;
+  description: string;
+  Icon: ComponentType<{ className?: string }>;
+  to?: LinkProps["to"];
+}[] = [
+  {
+    name: "Interval timer",
+    description: "Work, rest, repeat.",
+    Icon: TimerIcon,
+  },
+  {
+    name: "Box breathing",
+    description: "In, hold, out, hold.",
+    Icon: BreatheIcon,
+  },
+  {
+    name: "Today",
+    description: "A to-do list that forgets at midnight.",
+    Icon: TodayIcon,
+  },
 ];
 
 function Index() {
@@ -17,30 +40,40 @@ function Index() {
     <div className="mx-auto flex min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-md flex-col px-6 pt-10 pb-10">
       <main className="flex flex-1 flex-col justify-center">
         <header className="text-center">
-          <h1 className="text-xl font-medium">Ding</h1>
+          <Logo className="mx-auto h-6" />
+          <h1 className="mt-6 text-xl font-medium">Ding</h1>
           <p className="mt-2 text-secondary">
             Simple & useful no nonsense tools.
           </p>
         </header>
 
-        <ul className="mt-14 divide-y divide-[color-mix(in_oklab,var(--secondary)_25%,var(--bg))] border-y border-[color-mix(in_oklab,var(--secondary)_25%,var(--bg))]">
-          {tools.map((tool) => (
+        <ul className="mt-14">
+          {tools.map((tool, i) => (
             <li key={tool.name}>
+              {i > 0 && (
+                <WavyDivider className="mx-auto w-12 text-[color-mix(in_oklab,var(--secondary)_25%,var(--bg))]" />
+              )}
               {tool.to ? (
-                <Link to={tool.to} className="block py-4">
-                  <span className="font-medium">{tool.name}</span>
-                  <span className="mt-0.5 block text-sm text-secondary">
-                    {tool.description}
+                <Link to={tool.to} className="flex items-center gap-4 py-6">
+                  <tool.Icon className="size-7 shrink-0" />
+                  <span>
+                    <span className="font-medium">{tool.name}</span>
+                    <span className="mt-0.5 block text-sm text-secondary">
+                      {tool.description}
+                    </span>
                   </span>
                 </Link>
               ) : (
-                <div className="py-4 text-secondary">
-                  <span className="flex items-baseline justify-between gap-4">
-                    <span className="font-medium">{tool.name}</span>
-                    <span className="text-xs">Soon</span>
-                  </span>
-                  <span className="mt-0.5 block text-sm">
-                    {tool.description}
+                <div className="flex items-center gap-4 py-6 text-secondary">
+                  <tool.Icon className="size-7 shrink-0" />
+                  <span className="flex-1">
+                    <span className="flex items-baseline justify-between gap-4">
+                      <span className="font-medium">{tool.name}</span>
+                      <span className="text-xs">Soon</span>
+                    </span>
+                    <span className="mt-0.5 block text-sm">
+                      {tool.description}
+                    </span>
                   </span>
                 </div>
               )}
