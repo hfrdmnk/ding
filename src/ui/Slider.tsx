@@ -291,23 +291,33 @@ export function Slider({
           {!editing ? (
             <span
               ref={valueRef}
-              className="pointer-events-auto relative cursor-text border-b border-transparent tabular-nums transition-colors duration-150 group-data-active:text-[color-mix(in_oklab,var(--secondary)_60%,var(--primary))] after:absolute after:-inset-x-3 after:-inset-y-3 hover:border-current"
+              className="pointer-events-auto relative cursor-text border-b-2 border-transparent tabular-nums transition-colors duration-150 group-data-active:text-[color-mix(in_oklab,var(--secondary)_60%,var(--primary))] after:absolute after:-inset-x-3 after:-inset-y-3 hover:border-[color-mix(in_oklab,var(--secondary)_45%,var(--bg))]"
             >
               {format(value)}
             </span>
           ) : (
-            <input
-              autoFocus
-              aria-label={label}
-              inputMode="decimal"
-              value={draft}
-              onFocus={(event) => event.currentTarget.select()}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={onDraftKeyDown}
-              onBlur={onDraftBlur}
-              onPointerDown={(event) => event.stopPropagation()}
-              className="pointer-events-auto w-20 border-b border-current bg-transparent text-right text-primary tabular-nums outline-none"
-            />
+            // The hidden copy sizes the input to its text, so the underline is as wide as the value.
+            <span className="pointer-events-auto inline-grid">
+              <span
+                aria-hidden
+                className="invisible col-start-1 row-start-1 min-w-[1ch] border-b-2 whitespace-pre tabular-nums"
+              >
+                {draft || " "}
+              </span>
+              <input
+                autoFocus
+                aria-label={label}
+                inputMode="decimal"
+                size={1}
+                value={draft}
+                onFocus={(event) => event.currentTarget.select()}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={onDraftKeyDown}
+                onBlur={onDraftBlur}
+                onPointerDown={(event) => event.stopPropagation()}
+                className="col-start-1 row-start-1 w-0 min-w-full border-b-2 border-[color-mix(in_oklab,var(--secondary)_45%,var(--bg))] bg-transparent text-right text-primary tabular-nums outline-none"
+              />
+            </span>
           )}
         </div>
       </div>
