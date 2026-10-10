@@ -1,0 +1,110 @@
+# Build the image here instead of on the Dokploy server, push it to GHCR,
+# then tell Dokploy (only reachable through Tailscale) to pull it and redeploy.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  deploy:
+    # A manual run from another branch must not replace production.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check required secrets
+        env:
+          TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+        run: |
+          for name in TS_OAUTH_CLIENT_ID TS_OAUTH_SECRET DOKPLOY_WEBHOOK_URL; do
+            if [ -z "${!name}" ]; then
+              echo "Missing GitHub secret: $name" >&2
+              exit 1
+            fi
+          done
+
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify public image access
+        run: |
+          docker logout ghcr.io
+          if ! docker buildx imagetools inspect "$IMAGE:latest" >/dev/null; then
+            echo "The GHCR package must be public before Dokploy can pull it without credentials." >&2
+            exit 1
+          fi
+
+      - uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:github-actions
+          ping: dokploy.tailc2dfee.ts.net
+
+      # Dokploy rejects some requests with a 301, which curl --fail lets
+      # through, so require a 2xx explicitly.
+      - name: Trigger Dokploy deploy
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+        run: |
+          payload=$(jq --null-input \
+            --arg ref "$GITHUB_REF" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            '{ref: $ref, repository: {full_name: $repository}}')
+          status=$(curl --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            --retry 5 --retry-connrefused --retry-delay 5 \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --header "X-GitHub-Event: push" \
+            --data "$payload" \
+            --output response.txt --write-out '%{http_code}' \
+            "$DOKPLOY_WEBHOOK_URL")
+          cat response.txt
+          echo
+          if [ "${status:0:1}" != 2 ]; then
+            echo "Dokploy responded with HTTP $status" >&2
+            exit 1
+          fi

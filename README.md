@@ -28,7 +28,7 @@ The PNG app icons in `public/` are generated from `public/app-icon.svg` with `pn
 
 ## Deployment
 
-Pushes to `main` deploy to [ding.dominikhofer.me](https://ding.dominikhofer.me) through Dokploy, which builds the `Dockerfile`: pnpm builds the site, then Caddy serves `dist/client` on port 80 (see `Caddyfile` for routing and cache headers). Dokploy's Traefik terminates TLS. `sitemap.xml` is generated from the prerendered routes.
+Pushes to `main` deploy to [ding.dominikhofer.me](https://ding.dominikhofer.me) via GitHub Actions (`.github/workflows/deploy.yml`), which builds the `Dockerfile`, pushes the image to `ghcr.io/hfrdmnk/ding` and triggers Dokploy to pull it. Inside the image, pnpm builds the site, then Caddy serves `dist/client` on port 80 (see `Caddyfile` for routing and cache headers). Dokploy's Traefik terminates TLS. `sitemap.xml` is generated from the prerendered routes.
 
 ## Open decisions
 

@@ -25,7 +25,7 @@ pnpm format      # prettier --write (format:check to verify)
 - `src/lib/store.ts`: storage. `src/lib/audio.ts`: sound.
 - `src/styles/app.css`: design tokens (`@theme`) and base styles.
 - `vite.config.ts`: TanStack Start (prerender + sitemap), Tailwind and PWA (manifest + service worker) config.
-- `Dockerfile`, `Caddyfile`: production image, deployed by Dokploy on push to `main`.
+- `Dockerfile`, `Caddyfile`: production image. `.github/workflows/deploy.yml` builds it on push to `main`, pushes it to GHCR and triggers the Dokploy redeploy.
 
 ## Conventions
 
