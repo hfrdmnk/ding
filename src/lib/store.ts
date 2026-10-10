@@ -14,6 +14,7 @@ type StoreOptions<T> = {
 export type Store<T> = {
   readonly key: string;
   readonly sync: boolean;
+  readonly defaults: T;
   get: () => T;
   set: (next: T | ((prev: T) => T)) => void;
   reset: () => void;
@@ -64,6 +65,8 @@ export function createStore<T>({
   };
 
   const read = (): T => {
+    // Pages are prerendered on the server, where there is no storage.
+    if (typeof window === "undefined") return defaults;
     try {
       const raw = localStorage.getItem(fullKey);
       if (raw !== null) return withDefaults(JSON.parse(raw));
@@ -86,6 +89,7 @@ export function createStore<T>({
   return {
     key: fullKey,
     sync,
+    defaults,
     get: () => current,
     set: (next) => {
       current =
@@ -103,11 +107,14 @@ export function createStore<T>({
       emit();
     },
     subscribe: (listener) => {
-      if (listeners.size === 0) window.addEventListener("storage", onStorage);
+      // Other tabs can't change storage on the server, so only listen in the browser.
+      const inBrowser = typeof window !== "undefined";
+      if (inBrowser && listeners.size === 0)
+        window.addEventListener("storage", onStorage);
       listeners.add(listener);
       return () => {
         listeners.delete(listener);
-        if (listeners.size === 0)
+        if (inBrowser && listeners.size === 0)
           window.removeEventListener("storage", onStorage);
       };
     },
@@ -115,6 +122,11 @@ export function createStore<T>({
 }
 
 export function useStore<T>(store: Store<T>): [T, Store<T>["set"]] {
-  const value = useSyncExternalStore(store.subscribe, store.get);
+  // The server snapshot is what prerendered HTML shows; stored values replace it after hydration.
+  const value = useSyncExternalStore(
+    store.subscribe,
+    store.get,
+    () => store.defaults,
+  );
   return [value, store.set];
 }

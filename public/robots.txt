@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ding.dominikhofer.me/sitemap.xml

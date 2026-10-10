@@ -1,0 +1,21 @@
+# TLS is terminated by Dokploy's Traefik, so plain HTTP on :80.
+:80 {
+	root * /srv
+	encode zstd gzip
+
+	# /timer/ -> /timer, so each page has one URL.
+	@trailingSlash path_regexp trailing ^(.+)/$
+	redir @trailingSlash {re.trailing.1} 308
+
+	# /timer -> /timer.html (prerendered pages are written without subfolders).
+	try_files {path} {path}.html {path}/index.html
+
+	# Hashed build output never changes. Everything else (HTML, sw.js, the
+	# manifest, icons) must be revalidated so new deploys reach users.
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	@unhashed not path /assets/*
+	header @unhashed Cache-Control "no-cache"
+
+	file_server
+}

@@ -16,7 +16,16 @@ import { Toggle } from "../ui/Toggle";
 import { ToolShell } from "../ui/ToolShell";
 
 export const Route = createFileRoute("/timer")({
-  head: () => ({ meta: [{ title: "Interval timer · Ding" }] }),
+  head: () => ({
+    meta: [
+      { title: "Interval timer · Ding" },
+      {
+        name: "description",
+        content:
+          "A simple interval timer for work and rest rounds. Free, offline, no accounts.",
+      },
+    ],
+  }),
   component: Timer,
 });
 
