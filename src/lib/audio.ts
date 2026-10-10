@@ -46,6 +46,7 @@ const bell = (frequency: number, decay: number): SoundDefinition => ({
 const sounds = {
   ding: bell(1046.5, 1.6),
   restBell: bell(523.25, 2.2),
+  halfway: bell(783.99, 0.9),
   tick: {
     source: { type: "triangle", frequency: 1800 },
     envelope: { decay: 0.03 },

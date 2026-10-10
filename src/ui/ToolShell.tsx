@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { NavArrowLeft, Settings } from "iconoir-react";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Dialog } from "./Dialog";
+import { Logo } from "./Logo";
 
 type ToolShellProps = {
   title: string;
-  accent?: "orange" | "violet";
   /** Contents of the settings dialog. Omit to hide the settings button. */
   settings?: ReactNode;
   children: ReactNode;
@@ -14,26 +14,17 @@ type ToolShellProps = {
 const iconButton =
   "grid size-11 place-items-center rounded-full text-secondary hover:text-primary";
 
-export function ToolShell({
-  title,
-  accent,
-  settings,
-  children,
-}: ToolShellProps) {
-  const style = accent
-    ? ({ "--accent": `var(--${accent})` } as CSSProperties)
-    : undefined;
-
+export function ToolShell({ title, settings, children }: ToolShellProps) {
   return (
-    <div
-      style={style}
-      className="mx-auto flex min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-md flex-col px-4"
-    >
+    <div className="mx-auto flex min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-md flex-col px-4">
       <header className="grid h-16 grid-cols-[2.75rem_1fr_2.75rem] items-center">
         <Link to="/" aria-label="All tools" className={`-ml-2.5 ${iconButton}`}>
           <NavArrowLeft width={22} height={22} />
         </Link>
-        <h1 className="text-center text-base font-semibold">{title}</h1>
+        <div className="flex justify-center">
+          <Logo className="h-4 text-secondary" />
+          <h1 className="sr-only">{title}</h1>
+        </div>
         {settings && (
           <Dialog
             title="Settings"
