@@ -1,5 +1,6 @@
 import type { SoundName } from "../../lib/audio";
 import { createStore } from "../../lib/store";
+import type { SliderSegment } from "../../ui/Slider";
 
 export type TimerConfig = {
   /** Seconds. */
@@ -25,6 +26,25 @@ export const timerSettings = createStore<TimerConfig>({
     halfway: false,
   },
 });
+
+// Short intervals get most of the track and fine steps; longer, pomodoro-style
+// ones get coarser steps. Seconds.
+export const WORK_MIN = 5;
+export const workScale: SliderSegment[] = [
+  { to: 60, step: 5, share: 0.3 },
+  { to: 5 * 60, step: 15, share: 0.2 },
+  { to: 10 * 60, step: 30, share: 0.1 },
+  { to: 30 * 60, step: 60, share: 0.25 },
+  { to: 90 * 60, step: 5 * 60, share: 0.15 },
+];
+
+export const REST_MIN = 0;
+export const restScale: SliderSegment[] = [
+  { to: 60, step: 5, share: 0.35 },
+  { to: 5 * 60, step: 15, share: 0.25 },
+  { to: 10 * 60, step: 30, share: 0.15 },
+  { to: 30 * 60, step: 60, share: 0.25 },
+];
 
 export type Phase = "work" | "rest";
 

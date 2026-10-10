@@ -22,7 +22,7 @@ pnpm format      # prettier --write (format:check to verify)
 - `src/router.tsx`: router factory used by TanStack Start.
 - `src/tools/<tool>/`: a tool's logic and tool-specific components.
 - `src/ui/`: shared components, built on Base UI where it helps.
-- `src/lib/store.ts`: storage. `src/lib/audio.ts`: sound.
+- `src/lib/store.ts`: storage. `src/lib/audio.ts`: sound. `src/lib/haptics.ts`: vibration.
 - `src/styles/app.css`: design tokens (`@theme`) and base styles.
 - `vite.config.ts`: TanStack Start (prerender + sitemap), Tailwind and PWA (manifest + service worker) config.
 - `Dockerfile`, `Caddyfile`: production image. `.github/workflows/deploy.yml` builds it on push to `main`, pushes it to GHCR and triggers the Dokploy redeploy.
@@ -37,6 +37,7 @@ pnpm format      # prettier --write (format:check to verify)
 - Tools import UI only from `src/ui/`, never from `@base-ui/react` directly.
 - Storage only through `createStore`/`useStore` from `src/lib/store.ts`. Never touch `localStorage` directly. Bump `version` (and add `migrate`) when a stored shape changes incompatibly.
 - Audio only through `src/lib/audio.ts`. Call `unlockAudio()` inside the click handler that starts anything audible. Don't use `@web-kits/audio/react`: its hooks are silent under `prefers-reduced-motion`, and our sounds carry information.
+- Haptics only through `src/lib/haptics.ts`, and only from touch interactions. They're a bonus: Android has them, iOS Safari can't, so never let them carry information on their own.
 - Timers are computed from timestamps (`performance.now()` / `audioNow()`), never by counting `setInterval` ticks. Schedule sounds ahead with `playAt`.
 - Use the Screen Wake Lock API while a tool needs the screen on (e.g. a running timer); release it when stopped.
 - Respect `prefers-reduced-motion` and safe-area insets.

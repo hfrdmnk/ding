@@ -3,8 +3,12 @@ import { Infinite } from "iconoir-react";
 import { useStore } from "../lib/store";
 import {
   formatDuration,
+  REST_MIN,
+  restScale,
   timerSettings,
   totalDuration,
+  WORK_MIN,
+  workScale,
   type TimerConfig,
 } from "../tools/timer/intervals";
 import { useIntervalTimer } from "../tools/timer/useIntervalTimer";
@@ -88,18 +92,16 @@ function Timer() {
             label="Work"
             value={config.work}
             onValueChange={(work) => update({ work })}
-            min={5}
-            max={600}
-            step={5}
+            min={WORK_MIN}
+            segments={workScale}
             format={formatDuration}
           />
           <Slider
             label="Rest"
             value={config.rest}
             onValueChange={(rest) => update({ rest })}
-            min={0}
-            max={300}
-            step={5}
+            min={REST_MIN}
+            segments={restScale}
             format={formatDuration}
           />
           <div className="flex gap-2">
