@@ -18,11 +18,16 @@ export function ToolShell({ title, settings, children }: ToolShellProps) {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-md flex-col px-4">
       <header className="grid h-16 grid-cols-[2.75rem_1fr_2.75rem] items-center">
-        <Link to="/" aria-label="All tools" className={`-ml-2.5 ${iconButton}`}>
+        {/* On large screens the back button leaves the column and sits in the viewport corner. */}
+        <Link
+          to="/"
+          aria-label="All tools"
+          className={`-ml-2.5 lg:fixed lg:top-[calc(env(safe-area-inset-top)+0.625rem)] lg:left-[calc(env(safe-area-inset-left)+1rem)] lg:ml-0 ${iconButton}`}
+        >
           <NavArrowLeft width={22} height={22} />
         </Link>
-        <div className="flex justify-center">
-          <Logo className="h-4 text-secondary" />
+        <div className="col-start-2 flex justify-center">
+          <Logo className="h-4 text-secondary lg:h-5" />
           <h1 className="sr-only">{title}</h1>
         </div>
         {settings && (
@@ -32,7 +37,7 @@ export function ToolShell({ title, settings, children }: ToolShellProps) {
               <button
                 type="button"
                 aria-label="Settings"
-                className={`-mr-2.5 justify-self-end ${iconButton}`}
+                className={`col-start-3 -mr-2.5 justify-self-end ${iconButton}`}
               >
                 <Settings width={20} height={20} />
               </button>
