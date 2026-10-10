@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Prepares an Amp orb for Ding. Runs on fresh orbs and on stale snapshots, so it
+# must stay idempotent and fast when dependencies are already installed.
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+step() {
+  local name="$1"
+  shift
+  echo "==> $name"
+  local start=$SECONDS
+  "$@"
+  echo "<== $name ($((SECONDS - start))s)"
+}
+
+check_node() {
+  # README: Node 24+.
+  local major
+  major="$(node -p 'process.versions.node.split(".")[0]')"
+  if ((major < 24)); then
+    echo "Node $major found; Ding needs Node 24+" >&2
+    exit 1
+  fi
+  node --version
+}
+
+check_pnpm() {
+  # devEngines pins pnpm with onFail: download, so any installed pnpm fetches the
+  # pinned version itself. Only install pnpm when none is available at all.
+  if ! command -v pnpm >/dev/null; then
+    corepack enable pnpm
+  fi
+  pnpm --version
+}
+
+install_deps() {
+  # CI=true keeps pnpm non-interactive (e.g. when it must purge node_modules).
+  CI=true pnpm install --frozen-lockfile
+}
+
+step "Check Node" check_node
+step "Check pnpm" check_pnpm
+step "Install dependencies" install_deps
