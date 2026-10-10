@@ -1,8 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-86 -41.5 208 208">
-  <rect x="-86" y="-41.5" width="208" height="208" fill="#171717"/>
-  <g fill="#ffffff">
-    <rect x="2" width="32" height="32" rx="4"/>
-    <circle cx="18" cy="63" r="17"/>
-    <path transform="translate(-93 93)" d="M107.536 2C109.075 -0.666666 112.925 -0.666666 114.464 2L128.321 26C129.86 28.6667 127.936 32 124.856 32H97.1436C94.0644 32 92.1399 28.6667 93.6795 26L107.536 2Z"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#ff5500"/>
 </svg>

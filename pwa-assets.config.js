@@ -1,5 +1,4 @@
-// The source is a full-bleed tile with the safe-zone margin built in, so no
-// output gets extra padding.
+// Full-bleed orange square; the OS supplies the installed icon's corner mask.
 export default {
   headLinkOptions: { preset: "2023" },
   preset: {
