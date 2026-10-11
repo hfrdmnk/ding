@@ -8,29 +8,22 @@ import {
 } from "react";
 import { tick } from "../lib/haptics";
 
-/**
- * One section of a nonlinear track: runs from where the previous section
- * ends (or `min`) up to `to` in steps of `step`, across `share` of the width.
- */
-export type SliderSegment = { to: number; step: number; share: number };
-
 type SliderProps = {
   label: string;
   value: number;
   onValueChange: (value: number) => void;
   min: number;
+  max: number;
+  step?: number;
   format?: (value: number) => string;
-} & (
-  | { max: number; step?: number; segments?: never }
-  | { segments: SliderSegment[]; max?: never; step?: never }
-);
+};
 
 // Adapted from DialKit's slider (MIT, Josh Puckett): https://github.com/joshpuckett/dialkit
 const CLICK_THRESHOLD = 3;
 const RUBBER_DEAD_ZONE = 32;
 const RUBBER_RANGE = 200;
 const RUBBER_MAX = 8;
-const MARK_PULL = 1 / 32;
+const DECILE_PULL = 1 / 32;
 // The handle sits this far inside the fill's edge, and never closer than HANDLE_MIN to the track's start.
 const HANDLE_INSET = 9;
 const HANDLE_MIN = 5;
@@ -42,46 +35,10 @@ const DODGE_GAP = 8;
 const clamp = (n: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, n));
 
-type Section = SliderSegment & {
-  from: number;
-  /** Track fractions where the section starts and ends. */
-  start: number;
-  end: number;
-};
-
-function resolveSections(min: number, segments: SliderSegment[]): Section[] {
-  const total = segments.reduce((sum, s) => sum + s.share, 0);
-  let from = min;
-  let start = 0;
-  return segments.map((segment) => {
-    const end = start + segment.share / total;
-    const section = { ...segment, from, start, end };
-    from = segment.to;
-    start = end;
-    return section;
-  });
-}
-
-const sectionOf = (sections: Section[], value: number) =>
-  sections.find((s) => value <= s.to) ?? sections[sections.length - 1];
-
-function fractionOf(sections: Section[], value: number) {
-  const s = sectionOf(sections, value);
-  const within = s.to === s.from ? 0 : (value - s.from) / (s.to - s.from);
-  return clamp(s.start + within * (s.end - s.start), 0, 1);
-}
-
-function valueAtFraction(sections: Section[], f: number) {
-  const s = sections.find((s) => f <= s.end) ?? sections[sections.length - 1];
-  const within = s.end === s.start ? 0 : (f - s.start) / (s.end - s.start);
-  return s.from + within * (s.to - s.from);
-}
-
-// Accepts what `format` shows for durations ("1:30", "1:30:00") as well as plain numbers.
+// Accepts what `format` shows for durations ("1:30") as well as plain numbers.
 function parse(text: string): number {
-  const time = text.trim().match(/^(?:(\d+):)?(\d+):(\d{1,2})$/);
-  if (time)
-    return Number(time[1] ?? 0) * 3600 + Number(time[2]) * 60 + Number(time[3]);
+  const time = text.trim().match(/^(\d+):(\d{1,2})$/);
+  if (time) return Number(time[1]) * 60 + Number(time[2]);
   return Number.parseFloat(text);
 }
 
@@ -90,9 +47,8 @@ export function Slider({
   value,
   onValueChange,
   min,
-  max: linearMax,
+  max,
   step = 1,
-  segments,
   format = String,
 }: SliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -134,24 +90,16 @@ export function Slider({
     return () => observer.disconnect();
   }, [editing]);
 
-  // A linear slider is a single section spanning the whole track.
-  const sections = resolveSections(
-    min,
-    segments ?? [{ to: linearMax ?? min, step, share: 1 }],
-  );
-  const max = sections.at(-1)?.to ?? min;
   const steps = Math.round((max - min) / step);
   const dragging = dragFraction !== null;
-  const fraction = dragFraction ?? fractionOf(sections, value);
+  const fraction = dragFraction ?? (value - min) / (max - min);
   const active = hovered || pressed || focused;
-  const valueAt = (f: number) => valueAtFraction(sections, f);
 
   const round = (n: number) => {
     const clamped = clamp(n, min, max);
     if (clamped === min || clamped === max) return clamped;
-    const s = sectionOf(sections, clamped);
-    const snapped = s.from + Math.round((clamped - s.from) / s.step) * s.step;
-    return clamp(Number(snapped.toPrecision(14)), s.from, s.to);
+    const snapped = min + Math.round((clamped - min) / step) * step;
+    return clamp(Number(snapped.toPrecision(14)), min, max);
   };
 
   const commit = (next: number, animate: boolean) => {
@@ -170,38 +118,16 @@ export function Slider({
     if (start.touch) tick();
   };
 
-  // Steps can differ on either side of a section boundary, so go one at a time.
-  const stepBy = (from: number, count: number) => {
-    let next = round(from);
-    // An off-grid value that snapping moved in the right direction has already taken its first step.
-    const snapped = Math.sign(next - from) === Math.sign(count) ? 1 : 0;
-    for (let i = snapped; i < Math.abs(count); i++) {
-      const s =
-        count > 0
-          ? sections.find((s) => s.to > next)
-          : sections.findLast((s) => s.from < next);
-      if (!s) break;
-      next = round(next + Math.sign(count) * s.step);
-    }
-    return next;
-  };
-
-  // Linear tracks mark deciles (or every step when there are few); nonlinear ones mark where sections meet.
-  const marks = segments
-    ? sections.slice(0, -1).map((s) => s.end)
-    : Array.from(
-        { length: Math.min(steps, 10) - 1 },
-        (_, i) => (i + 1) / Math.min(steps, 10),
-      );
-
   const fractionAt = (clientX: number, rect: DOMRect) =>
     clamp((clientX - rect.left) / rect.width, 0, 1);
 
-  // Clicks land on a nearby mark (or on the nearest step when there are few).
+  // Clicks land on a nearby decile (or on the nearest step when there are few).
   const snapClick = (f: number) => {
-    if (!segments && steps <= 10) return min + Math.round(f * steps) * step;
-    const mark = marks.find((m) => Math.abs(f - m) <= MARK_PULL);
-    return valueAt(mark ?? f);
+    if (steps <= 10) return min + Math.round(f * steps) * step;
+    const decile = Math.round(f * 10) / 10;
+    return (
+      min + (Math.abs(f - decile) <= DECILE_PULL ? decile : f) * (max - min)
+    );
   };
 
   const rubberBand = (clientX: number, rect: DOMRect) => {
@@ -239,7 +165,7 @@ export function Slider({
     const f = fractionAt(event.clientX, start.rect);
     setDragFraction(f);
     setStretch(rubberBand(event.clientX, start.rect));
-    commitGesture(valueAt(f), false);
+    commitGesture(min + f * (max - min), false);
   };
 
   const onPointerUp = (event: PointerEvent) => {
@@ -249,7 +175,7 @@ export function Slider({
     if (!dragging && start.onValue) editOnClick.current = true;
     else {
       const f = fractionAt(event.clientX, start.rect);
-      commitGesture(dragging ? valueAt(f) : snapClick(f), true);
+      commitGesture(dragging ? min + f * (max - min) : snapClick(f), true);
     }
     endGesture();
   };
@@ -273,12 +199,12 @@ export function Slider({
     const next = {
       Home: min,
       End: max,
-      ArrowRight: stepBy(value, big),
-      ArrowUp: stepBy(value, big),
-      PageUp: stepBy(value, big),
-      ArrowLeft: stepBy(value, -big),
-      ArrowDown: stepBy(value, -big),
-      PageDown: stepBy(value, -big),
+      ArrowRight: value + step * big,
+      ArrowUp: value + step * big,
+      PageUp: value + step * big,
+      ArrowLeft: value - step * big,
+      ArrowDown: value - step * big,
+      PageDown: value - step * big,
     }[event.key];
     if (next === undefined) return;
     event.preventDefault();
@@ -315,6 +241,8 @@ export function Slider({
       handleX + HANDLE_WIDTH >
         widths.track - TEXT_INSET - widths.value - DODGE_GAP);
   const handleOpacity = !active ? 0 : dodge ? 0.1 : dragging ? 0.9 : 0.5;
+
+  const marks = steps <= 10 ? steps : 10;
 
   return (
     <div className="relative h-11 w-full text-sm font-medium">
@@ -357,11 +285,11 @@ export function Slider({
         />
 
         <div aria-hidden>
-          {marks.map((mark) => (
+          {Array.from({ length: marks - 1 }, (_, i) => (
             <span
-              key={mark}
+              key={i}
               className="absolute top-1/2 h-2 w-px -translate-1/2 rounded-full bg-transparent transition-colors duration-200 group-data-active:bg-[color-mix(in_oklab,var(--secondary)_35%,var(--bg))]"
-              style={{ left: `${mark * 100}%` }}
+              style={{ left: `${((i + 1) / marks) * 100}%` }}
             />
           ))}
         </div>
