@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CrosspostRouteImport } from './routes/crosspost'
 import { Route as TimerRouteImport } from './routes/timer'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrosspostRoute = CrosspostRouteImport.update({
+  id: '/crosspost',
+  path: '/crosspost',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TimerRoute = TimerRouteImport.update({
@@ -25,27 +31,31 @@ const TimerRoute = TimerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/crosspost': typeof CrosspostRoute
   '/timer': typeof TimerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/crosspost': typeof CrosspostRoute
   '/timer': typeof TimerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/crosspost': typeof CrosspostRoute
   '/timer': typeof TimerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/timer'
+  fullPaths: '/' | '/crosspost' | '/timer'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/timer'
-  id: '__root__' | '/' | '/timer'
+  to: '/' | '/crosspost' | '/timer'
+  id: '__root__' | '/' | '/crosspost' | '/timer'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CrosspostRoute: typeof CrosspostRoute
   TimerRoute: typeof TimerRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crosspost': {
+      id: '/crosspost'
+      path: '/crosspost'
+      fullPath: '/crosspost'
+      preLoaderRoute: typeof CrosspostRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/timer': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CrosspostRoute: CrosspostRoute,
   TimerRoute: TimerRoute,
 }
 export const routeTree = rootRouteImport

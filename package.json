@@ -21,6 +21,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@atproto/oauth-client-browser": "0.5.14",
     "@base-ui/react": "1.9.0",
     "@tanstack/react-router": "1.170.41",
     "@tanstack/react-start": "1.168.60",

@@ -1,8 +1,12 @@
+import { createHash } from "node:crypto";
+import { readdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { VitePWA, type ManifestOptions } from "vite-plugin-pwa";
+import { clientMetadata } from "./src/tools/crosspost/oauthClientMetadata";
 
 // Hex mirrors of the --bg tokens in src/styles/app.css; manifests can't read CSS.
 const LIGHT_BG = "#ffffff";
@@ -29,6 +33,63 @@ const baseManifest = {
   ],
 } satisfies Partial<ManifestOptions>;
 
+const CLIENT_DIR = "dist/client";
+
+// Prerendered pages carry inline scripts (router state) that differ per page,
+// so each page gets its own policy, with their hashes, as a <meta> tag. Links
+// and images can point anywhere: posts go to any PDS or Mastodon instance.
+// frame-ancestors can't be set from a <meta>; public/_headers sends it.
+const contentSecurityPolicy = (scriptHashes: string[]) =>
+  [
+    "default-src 'self'",
+    `script-src 'self' ${scriptHashes.join(" ")}`,
+    // Prerendered HTML has style="" attributes (e.g. slider positions).
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' blob: data: https:",
+    "connect-src 'self' https:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+
+const afterPrerender: Plugin = {
+  name: "ding:after-prerender",
+  apply: "build",
+  enforce: "post",
+  buildApp: {
+    order: "post",
+    async handler() {
+      await writeFile(
+        join(CLIENT_DIR, "oauth-client-metadata.json"),
+        JSON.stringify(clientMetadata, null, 2),
+      );
+      const pages = (await readdir(CLIENT_DIR, { recursive: true })).filter(
+        (file) => file.endsWith(".html"),
+      );
+      for (const page of pages) {
+        const path = join(CLIENT_DIR, page);
+        const html = await readFile(path, "utf8");
+        const hashes = [
+          ...html.matchAll(/<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/g),
+        ].map(([, body]) => {
+          // Browsers hash the script as their HTML parser reads it: line breaks
+          // normalized and NUL (in the router's match IDs) replaced with U+FFFD.
+          const parsed = body.replace(/\r\n?/g, "\n").replace(/\0/g, "\uFFFD");
+          return `'sha256-${createHash("sha256").update(parsed).digest("base64")}'`;
+        });
+        const meta = `<meta http-equiv="Content-Security-Policy" content="${contentSecurityPolicy(hashes)}"/>`;
+        // Right after the charset, which must stay within the first 1024 bytes.
+        const charset = /<meta charSet="utf-8"\/>/i;
+        if (!charset.test(html)) throw new Error(`No charset meta in ${page}`);
+        await writeFile(
+          path,
+          html.replace(charset, (tag) => tag + meta),
+        );
+      }
+    },
+  },
+};
+
 // vite-plugin-pwa normally writes the service worker as the client bundle
 // closes, which under Start doesn't happen and would be before the pages are
 // prerendered anyway. Generate it once they exist so they're precached. Must
@@ -48,7 +109,7 @@ const pwaAfterPrerender = (pwa: Plugin[]): Plugin => ({
 
 const pwa = VitePWA({
   // Start's client build lands here; the default would also sweep up dist/server.
-  outDir: "dist/client",
+  outDir: CLIENT_DIR,
   // A new version waits until every Ding tab is closed instead of taking over
   // (and reloading) a page that may be running a timer. There's no update prompt.
   registerType: "prompt",
@@ -85,6 +146,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     pwa,
+    // Before the service worker, so it precaches the final HTML.
+    afterPrerender,
     pwaAfterPrerender(pwa),
   ],
 });

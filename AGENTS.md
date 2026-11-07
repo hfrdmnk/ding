@@ -33,7 +33,7 @@ pnpm format      # prettier --write (format:check to verify)
 - Minimalism first: when in doubt, remove it. One primary action per screen, no shadows, gradients, or cards-in-cards.
 - `system-ui` only, no web fonts. Use `tabular-nums` for any number that changes.
 - Type sizes follow the major-second scale in `src/styles/app.css`; don't add arbitrary `text-[…]` sizes. Emphasis is `font-medium`, never semibold or bold.
-- Colors: only the tokens in `src/styles/app.css` (`bg`, `primary`, `secondary`, `orange`, `violet`). Orange means effort/active ("work"); violet means calm ("rest", "exhale"). Orange is for fills; on text only as a transient highlight (e.g. hover), never as a resting text color. Lines and subtle surfaces use `color-mix(in oklab, var(--secondary) N%, var(--bg))`, not new tokens.
+- Colors: only the tokens in `src/styles/app.css` (`bg`, `primary`, `secondary`, `orange`, `violet`, `blue`, `red`). Orange means effort/active ("work"); violet means calm ("rest", "exhale"). Blue is Bluesky and pairs with violet for Mastodon. Red means something is wrong (over a limit, failed). Orange is for fills; on text only as a transient highlight (e.g. hover), never as a resting text color. Lines and subtle surfaces use `color-mix(in oklab, var(--secondary) N%, var(--bg))`, not new tokens.
 - Tools import UI only from `src/ui/`, never from `@base-ui/react` directly.
 - Storage only through `createStore`/`useStore` from `src/lib/store.ts`. Never touch `localStorage` directly. Bump `version` (and add `migrate`) when a stored shape changes incompatibly.
 - Audio only through `src/lib/audio.ts`. Call `unlockAudio()` inside the click handler that starts anything audible. Don't use `@web-kits/audio/react`: its hooks are silent under `prefers-reduced-motion`, and our sounds carry information.
@@ -41,6 +41,7 @@ pnpm format      # prettier --write (format:check to verify)
 - Timers are computed from timestamps (`performance.now()` / `audioNow()`), never by counting `setInterval` ticks. Schedule sounds ahead with `playAt`.
 - Use the Screen Wake Lock API while a tool needs the screen on (e.g. a running timer); release it when stopped.
 - Respect `prefers-reduced-motion` and safe-area insets.
+- Every page ships a Content Security Policy that `vite.config.ts` adds after prerendering, with hashes for the inline scripts. Load scripts only from the bundle; no third-party scripts, analytics or trackers.
 - Every route is prerendered in Node, where `window`, `localStorage` and audio don't exist. Touch browser APIs only in effects and event handlers, never at module level or during render. Prerendered HTML shows store `defaults`; stored values replace them after hydration.
 
 ### Adding a tool

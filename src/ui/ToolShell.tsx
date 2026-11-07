@@ -8,17 +8,21 @@ type ToolShellProps = {
   title: string;
   /** Contents of the settings dialog. Omit to hide the settings button. */
   settings?: ReactNode;
+  /** A wider column, for tools you write in. */
+  wide?: boolean;
   children: ReactNode;
 };
 
 const iconButton =
   "grid size-11 place-items-center rounded-full text-secondary hover:text-primary";
 
-export function ToolShell({ title, settings, children }: ToolShellProps) {
+export function ToolShell({ title, settings, wide, children }: ToolShellProps) {
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-md flex-col px-4">
+    <div
+      className={`mx-auto flex min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full flex-col px-4 ${wide ? "max-w-xl" : "max-w-md"}`}
+    >
       <header className="grid h-16 grid-cols-[2.75rem_1fr_2.75rem] items-center">
-        {/* On large screens the back button leaves the column and sits in the viewport corner. */}
+        {/* On large screens the back and settings buttons leave the column and sit in the viewport corners. */}
         <Link
           to="/"
           aria-label="All tools"
@@ -37,7 +41,7 @@ export function ToolShell({ title, settings, children }: ToolShellProps) {
               <button
                 type="button"
                 aria-label="Settings"
-                className={`col-start-3 -mr-2.5 justify-self-end ${iconButton}`}
+                className={`col-start-3 -mr-2.5 justify-self-end lg:fixed lg:top-[calc(env(safe-area-inset-top)+0.625rem)] lg:right-[calc(env(safe-area-inset-right)+1rem)] lg:mr-0 ${iconButton}`}
               >
                 <Settings width={20} height={20} />
               </button>

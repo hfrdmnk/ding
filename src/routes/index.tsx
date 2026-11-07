@@ -26,6 +26,11 @@ const tools: {
     name: "Today",
     description: "A to-do list that forgets at midnight.",
   },
+  {
+    name: "Crosspost",
+    description: "One thread, on Bluesky and Mastodon.",
+    to: "/crosspost",
+  },
 ];
 
 function Index() {

@@ -121,6 +121,49 @@ export function createStore<T>({
   };
 }
 
+export type FileStore = {
+  get: (id: string) => Promise<Blob | undefined>;
+  put: (id: string, file: Blob) => Promise<void>;
+  delete: (id: string) => Promise<void>;
+  keys: () => Promise<string[]>;
+};
+
+/**
+ * Files too large for localStorage (e.g. images), kept in IndexedDB under
+ * `ding:<key>`. Never synced. Browser only: call it from effects and handlers.
+ */
+export function createFileStore(key: string): FileStore {
+  let db: Promise<IDBDatabase> | undefined;
+  const open = () =>
+    (db ??= new Promise((resolve, reject) => {
+      const request = indexedDB.open(`ding:${key}`, 1);
+      request.onupgradeneeded = () => request.result.createObjectStore("files");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    }));
+
+  const run = async <R>(
+    mode: IDBTransactionMode,
+    action: (files: IDBObjectStore) => IDBRequest,
+  ) => {
+    const files = (await open())
+      .transaction("files", mode)
+      .objectStore("files");
+    return new Promise<R>((resolve, reject) => {
+      const request = action(files);
+      request.onsuccess = () => resolve(request.result as R);
+      request.onerror = () => reject(request.error);
+    });
+  };
+
+  return {
+    get: (id) => run("readonly", (files) => files.get(id)),
+    put: (id, file) => run("readwrite", (files) => files.put(file, id)),
+    delete: (id) => run("readwrite", (files) => files.delete(id)),
+    keys: () => run("readonly", (files) => files.getAllKeys()),
+  };
+}
+
 export function useStore<T>(store: Store<T>): [T, Store<T>["set"]] {
   // The server snapshot is what prerendered HTML shows; stored values replace it after hydration.
   const value = useSyncExternalStore(
