@@ -155,14 +155,16 @@ const sessionFetch =
   (path, init) =>
     s.fetchHandler(path, init);
 
-/** Checks the session still works by refreshing it; updates the stored handle. */
+/**
+ * Checks the session still works; updates the stored handle. Doesn't force a
+ * token refresh: each refresh token works once, and a page that closes before
+ * storing the new one leaves a used token that makes the server end the session.
+ */
 export async function check() {
   const s = await session();
-  await s.getTokenInfo(true);
   const { handle } = await xrpc<{ handle: string }>(
-    publicFetch,
-    "app.bsky.actor.getProfile",
-    { params: { actor: s.did } },
+    sessionFetch(s),
+    "com.atproto.server.getSession",
   );
   accounts.set((prev) =>
     prev.bluesky ? { ...prev, bluesky: { ...prev.bluesky, handle } } : prev,
