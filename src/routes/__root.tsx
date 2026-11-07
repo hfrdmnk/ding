@@ -62,11 +62,6 @@ function RootDocument({ children }: { children: ReactNode }) {
           media="(prefers-color-scheme: dark)"
           content="#0a0a0a"
         />
-        <script
-          defer
-          data-domain="ding.dominikhofer.me"
-          src="https://analytics.linea.studio/js/script.js"
-        />
       </head>
       <body>
         {children}
