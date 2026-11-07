@@ -25,7 +25,7 @@ pnpm format      # prettier --write (format:check to verify)
 - `src/lib/store.ts`: storage. `src/lib/audio.ts`: sound. `src/lib/haptics.ts`: vibration.
 - `src/styles/app.css`: design tokens (`@theme`) and base styles.
 - `vite.config.ts`: TanStack Start (prerender + sitemap), Tailwind and PWA (manifest + service worker) config.
-- `Dockerfile`, `Caddyfile`: production image. `.github/workflows/deploy.yml` builds it on push to `main`, pushes it to GHCR and triggers the Dokploy redeploy.
+- `wrangler.jsonc`, `public/_headers`: Cloudflare hosting (static assets, routing, cache headers). Cloudflare Workers Builds builds and deploys every push to `main`.
 
 ## Conventions
 

@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ding",
+  "compatibility_date": "2026-11-04",
+  // Assets only, no Worker script: every route is prerendered at build time.
+  "assets": {
+    "directory": "./dist/client",
+    // /timer serves timer.html and /timer/ redirects to /timer, so each page has one URL.
+    "html_handling": "drop-trailing-slash",
+  },
+  "routes": [{ "pattern": "ding.dominikhofer.me", "custom_domain": true }],
+}

@@ -1,0 +1,5 @@
+# Hashed build output never changes. Everything else (HTML, sw.js, the
+# manifest, icons) keeps Cloudflare's default "max-age=0, must-revalidate",
+# so new deploys reach users.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
