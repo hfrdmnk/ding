@@ -1,14 +1,34 @@
 import * as bluesky from "./bluesky";
 import * as mastodon from "./mastodon";
 import type { Person } from "./stores";
-import type { Platform } from "./text";
+import { findEntities, type Platform } from "./text";
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
- * The text as it goes out on `platform`: each picked mention becomes that
- * person's account there, or their name when they aren't on it.
+ * What a mention of `person` says on `platform`: what was set for it, else
+ * their account there, else their name.
  */
+export function mentionText(person: Person, platform: Platform) {
+  const custom = person.custom?.[platform];
+  if (custom !== undefined) return custom;
+  const account =
+    platform === "bluesky" ? person.bluesky?.handle : person.mastodon?.acct;
+  return account ? `@${account}` : person.name;
+}
+
+/** The mention the caret is inside of (not at its edge), if any. */
+export function mentionAt(text: string, caret: number) {
+  const mention = [
+    ...findEntities(text, "mastodon"),
+    ...findEntities(text, "bluesky"),
+  ].find((e) => e.kind === "mention" && e.start < caret && caret < e.end);
+  if (!mention) return null;
+  const written = text.slice(mention.start, mention.end);
+  return { ...mention, written, key: written.slice(1).toLowerCase() };
+}
+
+/** The text as it goes out on `platform`, with each picked mention as `mentionText`. */
 export function renderMentions(
   text: string,
   mentions: Record<string, Person>,
@@ -16,16 +36,15 @@ export function renderMentions(
 ) {
   const keys = Object.keys(mentions).sort((a, b) => b.length - a.length);
   if (keys.length === 0) return text;
+  // Starts like Mastodon's mention pattern, the looser of the two, so every
+  // mention the editor marks is replaced.
   const re = new RegExp(
-    `(^|[\\s(])@(${keys.map(escape).join("|")})(?![\\w@-]|\\.\\w)`,
+    `(?<![=/\\w])@(${keys.map(escape).join("|")})(?![\\w@-]|\\.\\w)`,
     "gi",
   );
-  return text.replace(re, (_, before: string, key: string) => {
-    const person = mentions[key] ?? mentions[key.toLowerCase()];
-    const account =
-      platform === "bluesky" ? person.bluesky?.handle : person.mastodon?.acct;
-    return before + (account ? `@${account}` : person.name);
-  });
+  return text.replace(re, (_, key: string) =>
+    mentionText(mentions[key] ?? mentions[key.toLowerCase()], platform),
+  );
 }
 
 /** The @query being typed just before the caret, if any. */

@@ -71,6 +71,8 @@ export type Person = {
   avatar?: string;
   bluesky?: { handle: string; did: string };
   mastodon?: { acct: string };
+  /** Set by clicking the mention: what it says on a platform instead of the account there. */
+  custom?: Partial<Record<Platform, string>>;
 };
 
 export type DraftImage = {

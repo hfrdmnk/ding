@@ -18,8 +18,10 @@ import * as bluesky from "../tools/crosspost/bluesky";
 import { checkConnection, type Check } from "../tools/crosspost/connection";
 import { prepareImage } from "../tools/crosspost/images";
 import {
+  mentionAt,
   mentionKey,
   mentionQuery,
+  mentionText,
   renderMentions,
   searchPeople,
 } from "../tools/crosspost/mentions";
@@ -47,6 +49,7 @@ import {
   type Platform,
 } from "../tools/crosspost/text";
 import { Button } from "../ui/Button";
+import { TextField } from "../ui/TextField";
 import { ToolShell } from "../ui/ToolShell";
 import { Tooltip } from "../ui/Tooltip";
 
@@ -160,6 +163,10 @@ function Crosspost() {
   const pendingFocus = useRef<{ post: number; caret: number } | null>(null);
   const urls = useImageUrls(images.map((image) => image.id));
   const shortcut = useIsMac() ? "⌘↵" : "Ctrl+↵";
+
+  // Not autoFocus: that focuses the prerendered post before hydration, and
+  // React's onSelect then never fires for it.
+  useEffect(() => textareas.current[0]?.focus(), []);
 
   // Moves the caret after a split or merge, once the posts have rendered.
   useLayoutEffect(() => {
@@ -384,8 +391,13 @@ function Crosspost() {
     );
   };
 
-  // Mention autocomplete for the @word before the caret.
-  const query = job ? null : mentionQuery(posts[focus.post] ?? "", focus.caret);
+  // A caret inside a mention, from a click or the arrows, opens what it says on
+  // each platform; at the end of an @word that isn't a mention yet, autocomplete.
+  const focused = posts[focus.post] ?? "";
+  const mention = job ? null : mentionAt(focused, focus.caret);
+  const word = job || mention ? null : mentionQuery(focused, focus.caret);
+  const query =
+    word && !Object.hasOwn(mentions, word.query.toLowerCase()) ? word : null;
   const queryId = query && `${focus.post}:${query.start}`;
   const queryText = query?.query;
   const suggestions = results.query === queryText ? results.people : [];
@@ -423,6 +435,33 @@ function Crosspost() {
       setPost(i, v),
     );
     setResults({ query: "", people: [] });
+  };
+
+  // A mention typed by hand starts out as written on both platforms.
+  const setMentionText = (platform: Platform, value: string) => {
+    if (!mention) return;
+    const { key, written } = mention;
+    setDraft((prev) => {
+      const person = prev.mentions[key] ?? {
+        name: key,
+        custom: { bluesky: written, mastodon: written },
+      };
+      return {
+        ...prev,
+        mentions: {
+          ...prev.mentions,
+          [key]: { ...person, custom: { ...person.custom, [platform]: value } },
+        },
+      };
+    });
+  };
+
+  const closeMention = () => {
+    const el = textareas.current[focus.post];
+    if (!el || !mention) return;
+    el.focus();
+    el.setSelectionRange(mention.end, mention.end);
+    setFocus({ post: focus.post, caret: mention.end });
   };
 
   const onKeyDown = (i: number, event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -740,47 +779,87 @@ function Crosspost() {
               style={{ borderColor: line }}
             >
               <div inert={!!job} className="flex flex-col">
-                <PostEditor
-                  value={value}
-                  textareaRef={(el) => {
-                    textareas.current[i] = el;
-                  }}
-                  needsAlt={(n) => !imageByN.get(n)?.alt.trim()}
-                  aria-label={posts.length > 1 ? `Post ${i + 1}` : "Post"}
-                  placeholder={
-                    i === 0
-                      ? "Write something. Press Enter three times to start the next post."
-                      : "Next post"
-                  }
-                  autoFocus={i === 0}
-                  onChange={(event) => {
-                    setPost(i, event.target.value);
-                    setFocus({ post: i, caret: event.target.selectionStart });
-                  }}
-                  onSelect={(event) =>
-                    setFocus({
-                      post: i,
-                      caret: event.currentTarget.selectionStart,
-                    })
-                  }
-                  onFocus={(event) =>
-                    setFocus({
-                      post: i,
-                      caret: event.currentTarget.selectionStart,
-                    })
-                  }
-                  onKeyDown={(event) => onKeyDown(i, event)}
-                  onPaste={(event) => onPaste(i, event)}
-                  role="combobox"
-                  aria-expanded={open && focus.post === i}
-                  aria-controls="mention-suggestions"
-                  aria-autocomplete="list"
-                  aria-activedescendant={
-                    open && focus.post === i
-                      ? `mention-${highlighted}`
-                      : undefined
-                  }
-                />
+                {/* The mention fields show while the post or one of them has focus. */}
+                <div className="group flex flex-col">
+                  <PostEditor
+                    value={value}
+                    textareaRef={(el) => {
+                      textareas.current[i] = el;
+                    }}
+                    needsAlt={(n) => !imageByN.get(n)?.alt.trim()}
+                    aria-label={posts.length > 1 ? `Post ${i + 1}` : "Post"}
+                    placeholder={
+                      i === 0
+                        ? "Write something. Press Enter three times to start the next post."
+                        : "Next post"
+                    }
+                    onChange={(event) => {
+                      setPost(i, event.target.value);
+                      setFocus({ post: i, caret: event.target.selectionStart });
+                    }}
+                    onSelect={(event) =>
+                      setFocus({
+                        post: i,
+                        caret: event.currentTarget.selectionStart,
+                      })
+                    }
+                    onFocus={(event) =>
+                      setFocus({
+                        post: i,
+                        caret: event.currentTarget.selectionStart,
+                      })
+                    }
+                    onKeyDown={(event) => onKeyDown(i, event)}
+                    onPaste={(event) => onPaste(i, event)}
+                    role="combobox"
+                    aria-expanded={open && focus.post === i}
+                    aria-controls="mention-suggestions"
+                    aria-autocomplete="list"
+                    aria-activedescendant={
+                      open && focus.post === i
+                        ? `mention-${highlighted}`
+                        : undefined
+                    }
+                  />
+                  {mention && focus.post === i && (
+                    <div
+                      role="group"
+                      aria-label={`What ${mention.written} says on each platform`}
+                      // Keeps focus on a click beside the inputs, which would otherwise hide the fields mid-click.
+                      onPointerDown={(event) => {
+                        if (!(event.target instanceof HTMLInputElement))
+                          event.preventDefault();
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.nativeEvent.isComposing) return;
+                        if (event.key === "Escape" || event.key === "Enter") {
+                          event.preventDefault();
+                          closeMention();
+                        }
+                      }}
+                      className="mt-3 hidden gap-3 group-focus-within:grid sm:grid-cols-2"
+                    >
+                      {PLATFORMS.map((platform) => (
+                        <TextField
+                          key={platform}
+                          label={NAMES[platform]}
+                          value={
+                            mentions[mention.key]
+                              ? mentionText(mentions[mention.key], platform)
+                              : mention.written
+                          }
+                          onChange={(event) =>
+                            setMentionText(platform, event.target.value)
+                          }
+                          placeholder="@handle, name or link"
+                          autoComplete="off"
+                          autoCapitalize="off"
+                          spellCheck={false}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {open && focus.post === i && (
                   <ul
                     id="mention-suggestions"
