@@ -152,12 +152,19 @@ function Crosspost() {
   >({});
   const [notice, setNotice] = useState<string | null>(null);
   const [focus, setFocus] = useState({ post: 0, caret: 0 });
-  const [results, setResults] = useState<{ query: string; people: Person[] }>({
-    query: "",
-    people: [],
-  });
+  const [results, setResults] = useState<{
+    query: string;
+    scope: Platform | "post";
+    people: Person[];
+  }>({ query: "", scope: "post", people: [] });
   const [highlighted, setHighlighted] = useState(0);
   const [dismissedAt, setDismissedAt] = useState<string | null>(null);
+  // What was last typed in a mention's field, by the mention's key.
+  const [fieldInput, setFieldInput] = useState<{
+    key: string;
+    platform: Platform;
+    text: string;
+  } | null>(null);
   const textareas = useRef<(HTMLTextAreaElement | null)[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingFocus = useRef<{ post: number; caret: number } | null>(null);
@@ -399,20 +406,29 @@ function Crosspost() {
   const query =
     word && !Object.hasOwn(mentions, word.query.toLowerCase()) ? word : null;
   const queryId = query && `${focus.post}:${query.start}`;
-  const queryText = query?.query;
-  const suggestions = results.query === queryText ? results.people : [];
+  // In a mention's field, an @word searches that field's platform.
+  const field = mention && fieldInput?.key === mention.key ? fieldInput : null;
+  const searchText = mention
+    ? field?.text.match(/^@(\S+)$/)?.[1]
+    : query?.query;
+  const scope = mention ? field?.platform : "post";
+  const suggestions =
+    results.query === searchText && results.scope === scope
+      ? results.people
+      : [];
   const searchMastodon = connected.mastodon;
   const open = !!query && dismissedAt !== queryId && suggestions.length > 0;
+  const fieldOpen = !!field && suggestions.length > 0;
   useEffect(() => {
-    if (!queryText) return;
+    if (!searchText || !scope) return;
     let cancelled = false;
     const timer = setTimeout(() => {
-      void searchPeople(queryText, {
-        bluesky: true,
-        mastodon: searchMastodon,
+      void searchPeople(searchText, {
+        bluesky: scope !== "mastodon",
+        mastodon: scope !== "bluesky" && searchMastodon,
       }).then((people) => {
         if (cancelled) return;
-        setResults({ query: queryText, people });
+        setResults({ query: searchText, scope, people });
         setHighlighted(0);
       });
     }, 200);
@@ -420,7 +436,7 @@ function Crosspost() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [queryText, searchMastodon]);
+  }, [searchText, scope, searchMastodon]);
 
   const pick = (person: Person) => {
     const el = textareas.current[focus.post];
@@ -434,26 +450,68 @@ function Crosspost() {
     replaceRange(el, query.start, focus.caret, `@${key} `, (v) =>
       setPost(i, v),
     );
-    setResults({ query: "", people: [] });
+    setResults({ query: "", scope: "post", people: [] });
   };
 
-  // A mention typed by hand starts out as written on both platforms.
-  const setMentionText = (platform: Platform, value: string) => {
+  /** Updates the person behind the mention at the caret. */
+  const updateMention = (update: (person: Person) => Person) => {
     if (!mention) return;
     const { key, written } = mention;
-    setDraft((prev) => {
-      const person = prev.mentions[key] ?? {
-        name: key,
-        custom: { bluesky: written, mastodon: written },
-      };
-      return {
-        ...prev,
-        mentions: {
-          ...prev.mentions,
-          [key]: { ...person, custom: { ...person.custom, [platform]: value } },
-        },
-      };
-    });
+    setDraft((prev) => ({
+      ...prev,
+      mentions: {
+        ...prev.mentions,
+        // A mention typed by hand starts out as written on both platforms.
+        [key]: update(
+          prev.mentions[key] ?? {
+            name: key,
+            custom: { bluesky: written, mastodon: written },
+          },
+        ),
+      },
+    }));
+  };
+
+  const setMentionText = (platform: Platform, text: string) => {
+    if (!mention) return;
+    updateMention((person) => ({
+      ...person,
+      custom: { ...person.custom, [platform]: text },
+    }));
+    setFieldInput({ key: mention.key, platform, text });
+  };
+
+  const pickAccount = (picked: Person) => {
+    if (!field) return;
+    const { platform } = field;
+    updateMention((person) => ({
+      ...person,
+      ...(platform === "bluesky"
+        ? { bluesky: picked.bluesky }
+        : { mastodon: picked.mastodon }),
+      custom: without(person.custom ?? {}, platform),
+    }));
+    setFieldInput(null);
+  };
+
+  const onFieldKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (!fieldOpen || event.nativeEvent.isComposing) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      setHighlighted(
+        (h) => (h + step + suggestions.length) % suggestions.length,
+      );
+    } else if (
+      (event.key === "Enter" || event.key === "Tab") &&
+      !event.shiftKey &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey
+    )
+      pickAccount(suggestions[highlighted]);
+    else if (event.key === "Escape") setFieldInput(null);
+    else return;
+    event.preventDefault();
   };
 
   const closeMention = () => {
@@ -726,6 +784,53 @@ function Crosspost() {
     );
   };
 
+  const peopleList = (
+    <ul
+      id="mention-suggestions"
+      role="listbox"
+      aria-label="People"
+      className="mt-3 flex flex-col"
+    >
+      {suggestions.map((person, k) => (
+        <li
+          key={mentionKey(person)}
+          id={`mention-${k}`}
+          role="option"
+          aria-selected={k === highlighted}
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={() => (field ? pickAccount(person) : pick(person))}
+          onPointerEnter={() => setHighlighted(k)}
+          className={`-mx-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 ${
+            k === highlighted ? subtle : ""
+          }`}
+        >
+          {person.avatar ? (
+            <img
+              src={person.avatar}
+              alt=""
+              width={28}
+              height={28}
+              className="size-7 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span className={`size-7 shrink-0 rounded-full ${subtle}`} />
+          )}
+          <span className="min-w-0">
+            <span className="block truncate font-medium">{person.name}</span>
+            <span className="block truncate text-xs text-secondary">
+              {[
+                person.bluesky && `@${person.bluesky.handle}`,
+                person.mastodon && `@${person.mastodon.acct}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+
   const message = job
     ? PLATFORMS.flatMap((p) =>
         job.platforms[p]?.error
@@ -831,85 +936,55 @@ function Crosspost() {
                           event.preventDefault();
                       }}
                       onKeyDown={(event) => {
-                        if (event.nativeEvent.isComposing) return;
+                        // A field's suggestions handled the key.
+                        if (
+                          event.defaultPrevented ||
+                          event.nativeEvent.isComposing
+                        )
+                          return;
                         if (event.key === "Escape" || event.key === "Enter") {
                           event.preventDefault();
                           closeMention();
                         }
                       }}
-                      className="mt-3 hidden gap-3 group-focus-within:grid sm:grid-cols-2"
+                      className="mt-3 hidden items-start gap-3 group-focus-within:grid sm:grid-cols-2"
                     >
-                      {PLATFORMS.map((platform) => (
-                        <TextField
-                          key={platform}
-                          label={NAMES[platform]}
-                          value={
-                            mentions[mention.key]
-                              ? mentionText(mentions[mention.key], platform)
-                              : mention.written
-                          }
-                          onChange={(event) =>
-                            setMentionText(platform, event.target.value)
-                          }
-                          placeholder="@handle, name or link"
-                          autoComplete="off"
-                          autoCapitalize="off"
-                          spellCheck={false}
-                        />
-                      ))}
+                      {PLATFORMS.map((platform) => {
+                        const listed = fieldOpen && field.platform === platform;
+                        return (
+                          <div key={platform} className="flex flex-col">
+                            <TextField
+                              label={NAMES[platform]}
+                              value={
+                                mentions[mention.key]
+                                  ? mentionText(mentions[mention.key], platform)
+                                  : mention.written
+                              }
+                              onChange={(event) =>
+                                setMentionText(platform, event.target.value)
+                              }
+                              onKeyDown={onFieldKeyDown}
+                              onBlur={() => setFieldInput(null)}
+                              placeholder="@ to search, a name or a link"
+                              autoComplete="off"
+                              autoCapitalize="off"
+                              spellCheck={false}
+                              role="combobox"
+                              aria-expanded={listed}
+                              aria-controls="mention-suggestions"
+                              aria-autocomplete="list"
+                              aria-activedescendant={
+                                listed ? `mention-${highlighted}` : undefined
+                              }
+                            />
+                            {listed && peopleList}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
-                {open && focus.post === i && (
-                  <ul
-                    id="mention-suggestions"
-                    role="listbox"
-                    aria-label="People"
-                    className="mt-3 flex flex-col"
-                  >
-                    {suggestions.map((person, k) => (
-                      <li
-                        key={mentionKey(person)}
-                        id={`mention-${k}`}
-                        role="option"
-                        aria-selected={k === highlighted}
-                        onPointerDown={(event) => event.preventDefault()}
-                        onClick={() => pick(person)}
-                        onPointerEnter={() => setHighlighted(k)}
-                        className={`-mx-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 ${
-                          k === highlighted ? subtle : ""
-                        }`}
-                      >
-                        {person.avatar ? (
-                          <img
-                            src={person.avatar}
-                            alt=""
-                            width={28}
-                            height={28}
-                            className="size-7 shrink-0 rounded-full object-cover"
-                          />
-                        ) : (
-                          <span
-                            className={`size-7 shrink-0 rounded-full ${subtle}`}
-                          />
-                        )}
-                        <span className="min-w-0">
-                          <span className="block truncate font-medium">
-                            {person.name}
-                          </span>
-                          <span className="block truncate text-xs text-secondary">
-                            {[
-                              person.bluesky && `@${person.bluesky.handle}`,
-                              person.mastodon && `@${person.mastodon.acct}`,
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {open && focus.post === i && peopleList}
 
                 {postImages[i].length > 0 && (
                   <ul className="mt-4 flex flex-col gap-3">
