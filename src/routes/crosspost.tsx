@@ -297,7 +297,7 @@ function Crosspost() {
     for (const platform of active) {
       const over = threads[platform].findIndex((p) => p && !p.fits);
       if (over >= 0)
-        return `Post ${over + 1} is too long for ${NAMES[platform]}. Shorten it or press Enter twice to split it.`;
+        return `Post ${over + 1} is too long for ${NAMES[platform]}. Shorten it or press Enter three times to split it.`;
     }
     const used = postImages.flat();
     if (used.some((image) => altState[image.id] === "writing"))
@@ -453,17 +453,18 @@ function Crosspost() {
       }
     }
     if (event.nativeEvent.isComposing || !collapsed || !plain) return;
-    // Enter on an empty line starts the next post with the text after the caret.
+    // Enter on a second empty line starts the next post with the text after the caret.
     if (
       event.key === "Enter" &&
       value[at - 1] === "\n" &&
+      value[at - 2] === "\n" &&
       (at === value.length || value[at] === "\n")
     ) {
       event.preventDefault();
       replacePosts(
         i,
         1,
-        [value.slice(0, at - 1), value.slice(at).replace(/^\n/, "")],
+        [value.slice(0, at - 2), value.slice(at).replace(/^\n/, "")],
         { post: i + 1, caret: 0 },
       );
       return;
@@ -748,7 +749,7 @@ function Crosspost() {
                   aria-label={posts.length > 1 ? `Post ${i + 1}` : "Post"}
                   placeholder={
                     i === 0
-                      ? "Write something. Press Enter twice to start the next post."
+                      ? "Write something. Press Enter three times to start the next post."
                       : "Next post"
                   }
                   autoFocus={i === 0}
