@@ -85,8 +85,15 @@ function Index() {
         >
           <Signature className="h-10" />
         </a>
-        <p className="mt-4 text-sm">
-          Free, local, offline. No accounts, no ads.
+        <p className="mt-4 text-sm text-balance">
+          Free and{" "}
+          <a
+            href="https://github.com/hfrdmnk/ding"
+            className="underline decoration-[color-mix(in_oklab,var(--secondary)_45%,var(--bg))] underline-offset-2 transition-colors hover:text-primary"
+          >
+            open source
+          </a>
+          . Local only, works offline. No accounts, no ads.
         </p>
       </footer>
     </div>
