@@ -9,9 +9,11 @@ import {
   type Person,
   type SentPost,
 } from "./stores";
-import { blueskyText, byteLength, findEntities } from "./text";
+import { prepareImage } from "./images";
+import { blueskyText, byteLength, findEntities, findLinks } from "./text";
 
 const APPVIEW = "https://public.api.bsky.app";
+const CARDYB = "https://cardyb.bsky.app/v1";
 const PRODUCTION = new URL(metadata.client_id).origin;
 
 export class XrpcError extends Error {
@@ -258,6 +260,45 @@ async function facets(text: string, mentions: Record<string, Person>) {
   return { text: stored, facets: result };
 }
 
+/**
+ * A link card made the way Bluesky's app makes one: Bluesky's preview service
+ * reads the page, and for a standard.site page also returns its document and
+ * publication records, which Bluesky shows as an article card.
+ */
+async function linkCard(pds: Fetcher, uri: string) {
+  const response = await fetch(
+    `${CARDYB}/extract?${new URLSearchParams({ url: uri })}`,
+    { signal: AbortSignal.timeout(15_000) },
+  );
+  const meta: {
+    title?: string;
+    description?: string;
+    image?: string;
+    associated_refs?: { uri: string; cid: string }[];
+  } = await response.json();
+  if (!response.ok) throw new Error(`No preview for ${uri}`);
+  // Without its image the card still shows, so a failed image only drops it.
+  const thumb = meta.image
+    ? await fetch(meta.image)
+        .then((r) => r.blob())
+        .then(prepareImage)
+        .then(({ file }) =>
+          xrpc<{ blob: unknown }>(pds, "com.atproto.repo.uploadBlob", {
+            body: file,
+          }),
+        )
+        .then((r) => r.blob)
+        .catch(() => undefined)
+    : undefined;
+  return {
+    uri,
+    title: meta.title ?? "",
+    description: meta.description ?? "",
+    thumb,
+    associatedRefs: meta.associated_refs,
+  };
+}
+
 export async function createPost({
   text,
   images,
@@ -288,12 +329,23 @@ export async function createPost({
       aspectRatio: { width: image.width, height: image.height },
     });
   }
+  // A post holds one embed, so images win over a link card, as in Bluesky's
+  // app. Without a card the link still works, so a failed preview doesn't
+  // stop the post.
+  const link = findLinks(text)[0]?.uri;
+  const card =
+    uploaded.length === 0 && link
+      ? await linkCard(pds, link).catch(() => undefined)
+      : undefined;
   const record = {
     $type: "app.bsky.feed.post",
     ...(await facets(text, mentions)),
     createdAt: new Date().toISOString(),
     ...(uploaded.length > 0 && {
       embed: { $type: "app.bsky.embed.images", images: uploaded },
+    }),
+    ...(card && {
+      embed: { $type: "app.bsky.embed.external", external: card },
     }),
     ...(root &&
       parent && {
